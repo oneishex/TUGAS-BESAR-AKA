@@ -1,8 +1,11 @@
 package main
 
 import (
+	"image"
 	"image/color"
+	"os"
 	"strconv"
+	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
@@ -14,11 +17,14 @@ import (
 var btn1 *widget.Button
 var btn2 *widget.Button
 var btn3 *widget.Button
+var btnShowChart *widget.Button
 
 func main() {
 	a := app.NewWithID("com.anydom.com")
 	w1 := a.NewWindow("PERPUSTAKAAN BOS")
 	var dataBuku ArrBuku
+	var runningTimes []float64
+	var inputSizes []float64
 
 	img := canvas.NewImageFromFile("d:/Programming/Golang/cobafyne/img/header_bookshelf.jpg")
 	img.SetMinSize(fyne.NewSize(400, 80))
@@ -72,7 +78,12 @@ func main() {
 			)
 		} else {
 			//DISINI ISI BRO
+			start := time.Now()
 			hasil := searchIteratif(dataBuku, x)
+			elapsed := time.Since(start).Seconds() * 1000
+			runningTimes = append(runningTimes, elapsed)
+			inputSizes = append(inputSizes, float64(x))
+			println("Jumlah data untuk grafik:", len(runningTimes))
 			//DISINI ISI BRO
 
 			if hasil.ID == 0 {
@@ -206,7 +217,56 @@ func main() {
 		)
 	})
 
-	menu := fyne.NewMenu("Main", MenuItems1, MenuItems2, MenuItems3)
+	btnShowChart := widget.NewButton("Show Chart", func() {
+		// Pastikan data runningTimes sudah diisi
+		if len(runningTimes) == 0 {
+			w1.SetContent(
+				container.NewVBox(
+					widget.NewLabel("Tidak ada data untuk grafik. Jalankan pencarian terlebih dahulu!"),
+				),
+			)
+			return
+		}
+
+		// Panggil fungsi untuk membuat grafik
+		createChart(inputSizes, runningTimes)
+
+		// Buka file grafik yang baru dibuat
+		file, err := os.Open("runtime_chart.png")
+		if err != nil {
+			w1.SetContent(
+				container.NewVBox(
+					widget.NewLabel("Gagal membuka file grafik: " + err.Error()),
+				),
+			)
+			return
+		}
+		defer file.Close()
+
+		// Decode gambar dari file
+		img, _, err := image.Decode(file)
+		if err != nil {
+			w1.SetContent(
+				container.NewVBox(
+					widget.NewLabel("Gagal membaca gambar grafik: " + err.Error()),
+				),
+			)
+			return
+		}
+
+		// Tampilkan gambar di canvas
+		imageCanvas := canvas.NewImageFromImage(img)
+		imageCanvas.SetMinSize(fyne.NewSize(400, 250))
+		w1.SetContent(container.NewVBox(imageCanvas))
+	})
+
+	MenuItems4 := fyne.NewMenuItem("Show Graph", func() {
+		w1.SetContent(
+			container.NewVBox(con1, widget.NewLabel("Graph:"), btnShowChart),
+		)
+	})
+
+	menu := fyne.NewMenu("Main", MenuItems1, MenuItems2, MenuItems3, MenuItems4)
 
 	main := fyne.NewMainMenu(menu)
 
