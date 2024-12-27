@@ -1,5 +1,11 @@
 package main
 
+import (
+	"os"
+
+	"github.com/wcharczuk/go-chart/v2"
+)
+
 type info struct {
 	ID        int
 	title     string
@@ -53,12 +59,12 @@ func searchIteratif(Arr ArrBuku, id int) info {
 func searchRekursif(Arr ArrBuku, id int, i int) info {
 	if Arr.buku[i].ID == id {
 		return Arr.buku[i]
-	} else if i >= Arr.n {
+	} else if i == -1 {
 		var notfound info
 		notfound.ID = 0
 		return notfound
 	} else {
-		return searchRekursif(Arr, id, i+1)
+		return searchRekursif(Arr, id, i-1)
 	}
 }
 
@@ -73,4 +79,26 @@ func inputbukumanual(dataBuku *ArrBuku, x int, judul string, penulis string, pen
 	y.tipe = tipe
 	dataBuku.buku[dataBuku.n] = y
 	dataBuku.n++
+}
+
+func createChart(inputSizes, runningTimes []float64) {
+	graph := chart.Chart{
+		XAxis: chart.XAxis{
+			Name: "Input Size (Found on (N))",
+		},
+		YAxis: chart.YAxis{
+			Name: "Time (ms)",
+		},
+		Series: []chart.Series{
+			chart.ContinuousSeries{
+				Name:    "Running Time",
+				XValues: inputSizes,
+				YValues: runningTimes,
+			},
+		},
+	}
+
+	file, _ := os.Create("runtime_chart.png")
+	defer file.Close()
+	graph.Render(chart.PNG, file)
 }
